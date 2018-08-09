@@ -13,7 +13,10 @@ import android.widget.EditText;
 
 /*
 Projects:
-    - make ViewHolder a fragment
+    - make http request to get news api
+        https://developer.android.com/training/basics/network-ops/connecting
+        The above link uses fragment. Are there other ways?
+        Research other async process.
     - insert debugger
 
  */
