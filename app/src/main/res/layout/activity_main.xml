@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="loadHedadlines"
+        android:onClick="loadHeadlines"
         android:text="@string/load_button_text"
         android:textAllCaps="false"
         app:layout_constraintStart_toStartOf="parent"
@@ -40,11 +40,12 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/rv_headlines"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="16dp"
+    <fragment
+        android:id="@+id/fragment"
+        android:name="com.example.news2.HeadlinesListFragment"
+        android:layout_width="354dp"
+        android:layout_height="353dp"
+        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
