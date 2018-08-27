@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         FragmentManager manager = getSupportFragmentManager();
         HeadlinesListFragment headlines = (HeadlinesListFragment) manager
                                                                   .findFragmentById(R.id.fragment);
-        headlines.loadHedadlines();
+        headlines.loadHeadlines();
     }
 /*
     // I first thought that a list of headlines should be implemented as a list
