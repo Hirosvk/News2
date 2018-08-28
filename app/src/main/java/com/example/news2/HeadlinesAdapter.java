@@ -10,9 +10,10 @@ import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.ViewHolder> {
-    private Bundle[] headlines;
+    private JSONArray headlines;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public View headlineView;
@@ -22,25 +23,18 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
         }
     }
 
-    public HeadlinesAdapter(Bundle[] _headlines){
+    public HeadlinesAdapter(JSONArray _headlines){
         headlines = _headlines;
     }
 
-    public HeadlinesAdapter(JSONArray _headlines){
-        headlines = new Bundle[_headlines.length()];
-        for (int i = 0; i < _headlines.length(); i++){
-            String title = "(no title)";
-            String quote = "(no description)";
-            try {
-                title = _headlines.getJSONObject(i).getString("title");
-                quote = _headlines.getJSONObject(i).getString("description");
-            } catch (JSONException e){
-                Log.d("HK:HeadlinesAdapter", e.getMessage());
-            }
-            headlines[i] = new Bundle();
-            headlines[i].putString("title", title);
-            headlines[i].putString("quote", quote);
-        }
+    public void insertItem(JSONObject item){
+       headlines.put(item);
+       notifyItemInserted(getItemCount() - 1);
+    }
+
+    public void resetItems(){
+        headlines = new JSONArray();
+        notifyDataSetChanged();
     }
 
     // Create new views (invoked by the layout manager)
@@ -56,8 +50,14 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
     public void onBindViewHolder(ViewHolder holder, int position){
         TextView title = holder.headlineView.findViewById(R.id.textView6);
         TextView quote = holder.headlineView.findViewById(R.id.textView7);
-        String headlineTitle = headlines[position].getString("title");
-        String headlineQuote = headlines[position].getString("quote");
+        String headlineTitle = "(no title)";
+        String headlineQuote = "(no description)";
+        try {
+            headlineTitle = headlines.getJSONObject(position).getString("title");
+            headlineQuote = headlines.getJSONObject(position).getString("description");
+        } catch (JSONException e){
+            Log.d("onBindViewHolder", e.getMessage());
+        }
         title.setText(headlineTitle);
         quote.setText(headlineQuote);
     }
@@ -65,6 +65,6 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
     // also invoked by the layout manager
     @Override
     public int getItemCount(){
-        return headlines.length;
+        return headlines.length();
     }
 }

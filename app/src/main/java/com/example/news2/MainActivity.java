@@ -8,8 +8,8 @@ import android.view.View;
 
 /*
 Projects:
-    - insert debugger
-    - RecyclerView changing items/using DataObserver
+    x insert debugger
+    x RecyclerView changing items
     - Screen rotation and it's implication
     - open news link in a browser / webview
     - show images
@@ -18,19 +18,19 @@ Projects:
  */
 
 public class MainActivity extends AppCompatActivity {
-
+    private HeadlinesListFragment headlineFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        FragmentManager manager = getSupportFragmentManager();
+        headlineFragment = (HeadlinesListFragment) manager.findFragmentById(R.id.fragment);
     }
 
     public void loadHeadlines(View view){
-        FragmentManager manager = getSupportFragmentManager();
-        HeadlinesListFragment headlines = (HeadlinesListFragment) manager
-                                                                  .findFragmentById(R.id.fragment);
-        headlines.startDownload();
+        headlineFragment.loadHeadlines();
     }
 
     public void goAbout(View view){

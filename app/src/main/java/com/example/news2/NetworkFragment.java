@@ -28,9 +28,7 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class NetworkFragment extends Fragment {
     private static final String TAG = "NetworkFragment";
-    private static final String URL_KEY = "URL_KEY";
 
-    private String stringUrl;
     private DownloadCallback parentContext;
     private DownloadTask downloadTask;
 
@@ -50,9 +48,6 @@ public class NetworkFragment extends Fragment {
     // This is cleaner but seems a bit weird design.
     public static NetworkFragment getInstance(FragmentManager fManager, String url){
         NetworkFragment fragment = new NetworkFragment();
-        Bundle args = new Bundle();
-        args.putString(URL_KEY, url);
-        fragment.setArguments(args);
         fManager.beginTransaction().add(fragment, TAG).commit();
         return fragment;
     }
@@ -63,12 +58,6 @@ public class NetworkFragment extends Fragment {
         // Overriding this to update parentContext with context.
         // I guess you can't do this in onCreate.
         parentContext = (DownloadCallback) getParentFragment();
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstantState){
-        super.onCreate(savedInstantState);
-        stringUrl = getArguments().getString(URL_KEY);
     }
 
     @Override
@@ -92,7 +81,7 @@ public class NetworkFragment extends Fragment {
         }
     }
 
-    public void startDownload(){
+    public void startDownload(String stringUrl){
         cancelDownload();
         downloadTask = new DownloadTask();
         downloadTask.setParentContext(parentContext);

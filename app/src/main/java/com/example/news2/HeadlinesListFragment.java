@@ -18,7 +18,7 @@ import org.json.JSONObject;
 
 public class HeadlinesListFragment extends Fragment implements DownloadCallback<JSONObject>{
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private HeadlinesAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
     private NetworkFragment networkFragment;
@@ -29,12 +29,27 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
             "&category=business" +
             "&pageSize=5" +
             "&apiKey=4291bc8cb2e847caa9155968b7140448";
+    private Integer pageNum = 1;
 
     public HeadlinesListFragment() {
         // Required empty public constructor
     }
 
     public void updateHeadlines(JSONArray articles){
+        if (mAdapter!= null && mAdapter.getItemCount() > 0){
+            for(int i = 0; i < articles.length(); i++){
+                try {
+                    mAdapter.insertItem(articles.getJSONObject(i));
+                } catch (JSONException e){
+                    Log.d("updateHeadlines", e.getMessage());
+                }
+            }
+        } else {
+            initializeRecyclerView(articles);
+        }
+    }
+
+    private void initializeRecyclerView(JSONArray articles){
         mRecyclerView = (RecyclerView) getView().findViewById(R.id.headlines_recycler_view);
         mRecyclerView.setHasFixedSize(true);
 
@@ -44,6 +59,32 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
         mAdapter = new HeadlinesAdapter(articles);
         mRecyclerView.setAdapter(mAdapter);
+
+        final HeadlinesListFragment parentFragment = this;
+
+        // TODO:
+        // I don't understand this syntax. Do more research....
+        //   This closure seems to be working, but are there any danger in this?
+        //   What is this syntax, when instantiating OnScrollListener while overriding function.
+        //   Lambda keeps coming up with closure. Study lambda.
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            private HeadlinesListFragment fragment = parentFragment;
+            @Override
+            public void onScrolled(RecyclerView view, int dx, int dy ){
+                Log.d("onScrolled", "onScrolled kicked in");
+                super.onScrolled(view, dx, dy);
+                if (!view.canScrollVertically(1)){
+                    fragment.loadHeadlines();
+                }
+            }
+        });
+    }
+
+
+    @Override
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        loadHeadlines();
     }
 
     @Override
@@ -101,48 +142,25 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     }
     /* Implementation Functions */
 
-    public void startDownload(){
+    public void loadHeadlines(){
         if (!downloading && networkFragment != null) {
-            Log.d("HK:startDownload", "Starting download");
-            networkFragment.startDownload();
+            Log.d("HK:loadHeadlines", "Starting download");
+            networkFragment.startDownload(newsUrl());
             downloading = true;
         }
     }
 
-/*
-    public Bundle[] bundledHeadlines(){
-        int size = headlineTitles.length;
-        Bundle[] bundledHeadlines = new Bundle[size];
-        for(int i = 0; i < size; i++){
-            Bundle b = new Bundle();
-            b.putString("title", headlineTitles[i]);
-            b.putString("quote", headlineQuotes[i]);
-            bundledHeadlines[i] = b;
-        }
-        return bundledHeadlines;
+    public void resetHeadlines(){
+        mAdapter.resetItems();
+        pageNum = 1;
+        loadHeadlines();
     }
 
 
-    private String[] headlineTitles = new String[]{
-            "Monica Hall",
-            "Gavin Belson",
-            "Jack \"Action Jack\" Barker",
-            "Nelson \"Big Head\" Bighetti",
-            "Donald \"Jared\" Dunn",
-            "Jian Yang",
-            "Ron LaFlamme",
-            "Peter Gregory"
-    };
+    private String newsUrl(){
+        String _url = newsUrl + "&page=" + pageNum.toString();
+        pageNum++;
+        return _url;
+    }
 
-    private String[] headlineQuotes = new String[]{
-            "I firmly believe we can only achieve greatness if first, we achieve goodness",
-            "I was gonna sleep last night, but, uh... I thought I had this solve for this computational trust issue I've been working on, but it turns out, I didn't have a solve. But it was too late. I had already drank the whole pot of coffee.",
-            "You listen to me, you muscle-bound handsome Adonis: tech is reserved for people like me, okay? The freaks, the weirdos, the misfits, the geeks, the dweebs, the dorks! Not you!",
-            "And that, gentlemen, is scrum. Welcome to the next eight weeks of our lives.",
-            "Gentlemen, I just paid the palapa contractor. The palapa piper, so to speak. The dream is a reality. We'll no longer be exposed... to the elements.",
-            "Let me ask you. How fast do you think you could jerk off every guy in this room? Because I know how long it would take me. And I can prove it",
-            "I simply imagine that my skeleton is me and my body is my house. That way I'm always home.",
-            "Gavin Belson started out with lofty goals too, but he just kept excusing immoral behavior just like this, until one day all that was left was a sad man with funny shoes... Disgraced, friendless, and engorged with the blood of a youthful charlatan."
-    };
-*/
 }
