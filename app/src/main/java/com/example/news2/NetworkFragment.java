@@ -6,16 +6,11 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.JsonReader;
 import android.util.JsonToken;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,8 +43,9 @@ public class NetworkFragment extends Fragment {
         // Creating another public constructor with parameters are discouraged b/c
         // these won't be called when the fragment is re-instantiated.
         // There are some memory considerations that I still don't fully understand about
-        // re: use of setArguments
+        // use of setArguments
     }
+
     // Why is NetworkFragment's method is handling the add-transaction instead of the parent?
     // This is cleaner but seems a bit weird design.
     public static NetworkFragment getInstance(FragmentManager fManager, String url){
@@ -61,13 +57,6 @@ public class NetworkFragment extends Fragment {
         return fragment;
     }
 
-
-    @Override
-    public void onCreate(Bundle savedInstantState){
-        super.onCreate(savedInstantState);
-        stringUrl = getArguments().getString(URL_KEY);
-    }
-
     @Override
     public void onAttach(Context context){
         super.onAttach(context);
@@ -77,10 +66,9 @@ public class NetworkFragment extends Fragment {
     }
 
     @Override
-    public void onDetach(){
-        super.onDetach();
-        // This avoids memory leak.
-        parentContext = null;
+    public void onCreate(Bundle savedInstantState){
+        super.onCreate(savedInstantState);
+        stringUrl = getArguments().getString(URL_KEY);
     }
 
     @Override
@@ -90,9 +78,17 @@ public class NetworkFragment extends Fragment {
         super.onDestroy();
     }
 
+    @Override
+    public void onDetach(){
+        super.onDetach();
+        // This avoids memory leak.
+        parentContext = null;
+    }
+
     public void cancelDownload(){
         if(downloadTask != null){
             downloadTask.cancel(true);
+            downloadTask = null;
         }
     }
 
@@ -158,7 +154,7 @@ public class NetworkFragment extends Fragment {
                     }
                 } catch(Exception e) {
                     result.setResult(e);
-                    Log.d("doInBackground", e.getMessage());
+                    Log.d("HK:doInBackground", e.getMessage());
                 }
             }
             return result;
@@ -173,19 +169,21 @@ public class NetworkFragment extends Fragment {
                     try {
                         errorResult.put("error", errorMsg);
                     } catch (JSONException e) {
-                        Log.d("onPostExecute", e.getMessage());
+                        Log.d("HK:onPostExecute", e.getMessage());
                     }
-                    Log.d("onPostExecute", "exception");
+                    Log.d("HK:onPostExecute", "exception");
                     parentContext.updateFromDownloads(errorResult);
                 } else if (result.getResultValue() != null){
-                    Log.d("onPostExecute", "resultValue");
+                    Log.d("HK:onPostExecute", "resultValue");
                     parentContext.updateFromDownloads(result.getResultValue());
                 } else {
-                    Log.d("onPostExecute", "resultValue");
+                    Log.d("HK:onPostExecute", "result is something else");
                 }
                 parentContext.finishedDownloading();
+            } else {
+                Log.d("HK:onPostExecute", "something is null");
+                cancel(true);
             }
-            Log.d("onPostExecute", "is null");
         }
 
         private JSONObject downloadUrl(URL url) throws IOException {
@@ -205,7 +203,7 @@ public class NetworkFragment extends Fragment {
                 publishProgress(DownloadCallback.Progress.CONNECT_SUCCESS);
                 // This triggers onProgressUpdate
                 int responseCode = connection.getResponseCode();
-                Log.d("DownloadUrl", "connected " + responseCode);
+                Log.d("HK:DownloadUrl", "connected " + responseCode);
 
                 if (responseCode != HttpsURLConnection.HTTP_OK){
                     throw new IOException("HTTP code: " + responseCode);
@@ -229,16 +227,19 @@ public class NetworkFragment extends Fragment {
             return result;
         }
 
-        protected void onProgressUpdate(int status){
-            // In the example, this class never implements onProgressUpdate.
-            // This function is written in the parent fragment, which I believe won't
-            // be invoked unless there is one here.
+        protected void onProgressUpdate(Integer... progresses){
+            Integer status = progresses[0];
+            Log.d("HK:NF.onProgressUpdate", "status: " + status);
             parentContext.onProgressUpdate(status);
         }
 
         private JSONObject JsonParser(JsonReader reader){
+            // reader must start with BEGIN_OBJECT
             JSONObject result = new JSONObject();
             try {
+                if (reader.peek() != JsonToken.BEGIN_OBJECT) {
+                    throw new IllegalAccessException("reader must start with BEGIN_OBJECT");
+                }
                 reader.beginObject();
                 while(reader.hasNext()) {
                     String name = reader.nextName();
@@ -254,27 +255,31 @@ public class NetworkFragment extends Fragment {
                         JSONObject subResult = JsonParser(reader);
                         result.put(name, subResult);
 
-                    } else if (nextToken.equals(JsonToken.BEGIN_ARRAY)){
+                    } else if (nextToken.equals(JsonToken.BEGIN_ARRAY)) {
                         reader.beginArray();
                         result.put(name, new JSONArray());
 
-                        while (reader.hasNext()){
+                        while (reader.hasNext()) {
                             JSONObject subResult = JsonParser(reader);
                             result.accumulate(name, subResult);
                         }
                         reader.endArray();
+
+                    } else if (nextToken.equals(JsonToken.NULL)){
+                        result.put(name, "(no description)");
+                        reader.skipValue();
+
                     } else {
-                        result.put(name, "Something else");
+                        result.put(name, "Invalid data type");
                         reader.skipValue();
                     }
                 }
                 reader.endObject();
             } catch (Exception e){
                 result = null;
-                Log.d("JsonParser", e.getMessage());
+                Log.d("HK:JsonParser", e.getMessage());
             }
 
-            Log.d("JsonParser", "finished parsing " + result.length());
             return result;
         }
 

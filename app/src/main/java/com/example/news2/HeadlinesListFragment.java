@@ -12,10 +12,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.Iterator;
 
 public class HeadlinesListFragment extends Fragment implements DownloadCallback<JSONObject>{
     private RecyclerView mRecyclerView;
@@ -35,7 +34,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         // Required empty public constructor
     }
 
-    public void loadHeadlines(){
+    public void updateHeadlines(JSONArray articles){
         mRecyclerView = (RecyclerView) getView().findViewById(R.id.headlines_recycler_view);
         mRecyclerView.setHasFixedSize(true);
 
@@ -43,23 +42,8 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         mLayoutManager = new LinearLayoutManager(getContext());
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        mAdapter = new HeadlinesAdapter(bundledHeadlines());
+        mAdapter = new HeadlinesAdapter(articles);
         mRecyclerView.setAdapter(mAdapter);
-
-        Log.d("loadHeadlines", "Starting download");
-        networkFragment.startDownload();
-    }
-
-    public Bundle[] bundledHeadlines(){
-        int size = headlineTitles.length;
-        Bundle[] bundledHeadlines = new Bundle[size];
-        for(int i = 0; i < size; i++){
-            Bundle b = new Bundle();
-            b.putString("title", headlineTitles[i]);
-            b.putString("quote", headlineQuotes[i]);
-            bundledHeadlines[i] = b;
-        }
-        return bundledHeadlines;
     }
 
     @Override
@@ -73,7 +57,6 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     /* Implementation functions */
     @Override
     public NetworkInfo getActiveNetworkInfo() {
-        // Should permission be checked before using the manager?
         ConnectivityManager manager = (ConnectivityManager) getActivity()
                                       .getSystemService(Context.CONNECTIVITY_SERVICE);
         return manager.getActiveNetworkInfo();
@@ -81,6 +64,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
     @Override
     public void onProgressUpdate(int progressCode) {
+        Log.d("HK:HLF.onProgressUpdate", "status: " + progressCode);
         switch(progressCode){
             case Progress.CONNECT_SUCCESS:
                 // do something in UI.
@@ -94,15 +78,17 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     @Override
     public void updateFromDownloads(JSONObject result) {
         // updates headlines
-
-        Iterator<String> keys = result.keys();
+        JSONArray articles = null;
         try {
-            while (keys.hasNext()) {
-                String key = keys.next();
-                Log.d("updateFromDownloads", key + result.getString(key));
-            }
+            articles = result.getJSONArray("articles");
         } catch (JSONException e){
-            Log.d("updateFromDownloads", e.getMessage());
+            Log.d("HK:updateFromDownloads", e.getMessage());
+        }
+
+        if (articles != null) {
+            updateHeadlines(articles);
+        } else {
+            Log.d("HK:updateFromDownloads", "articles is null");
         }
     }
 
@@ -114,6 +100,28 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         }
     }
     /* Implementation Functions */
+
+    public void startDownload(){
+        if (!downloading && networkFragment != null) {
+            Log.d("HK:startDownload", "Starting download");
+            networkFragment.startDownload();
+            downloading = true;
+        }
+    }
+
+/*
+    public Bundle[] bundledHeadlines(){
+        int size = headlineTitles.length;
+        Bundle[] bundledHeadlines = new Bundle[size];
+        for(int i = 0; i < size; i++){
+            Bundle b = new Bundle();
+            b.putString("title", headlineTitles[i]);
+            b.putString("quote", headlineQuotes[i]);
+            bundledHeadlines[i] = b;
+        }
+        return bundledHeadlines;
+    }
+
 
     private String[] headlineTitles = new String[]{
             "Monica Hall",
@@ -136,5 +144,5 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
             "I simply imagine that my skeleton is me and my body is my house. That way I'm always home.",
             "Gavin Belson started out with lofty goals too, but he just kept excusing immoral behavior just like this, until one day all that was left was a sad man with funny shoes... Disgraced, friendless, and engorged with the blood of a youthful charlatan."
     };
-
+*/
 }

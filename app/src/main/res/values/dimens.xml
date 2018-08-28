@@ -1,7 +1,7 @@
 <resources>
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="headline_height">60dp</dimen>
-    <dimen name="headline_item_height">75dp</dimen>
-    <dimen name="headline_title">30dp</dimen>
-    <dimen name="headline_quote">45dp</dimen>
+    <dimen name="headline_item_height">110dp</dimen>
+    <dimen name="headline_title">45dp</dimen>
+    <dimen name="headline_quote">60dp</dimen>
 </resources>
