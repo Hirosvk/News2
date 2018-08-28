@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.JsonReader;
@@ -32,25 +33,38 @@ public class NetworkFragment extends Fragment {
     private DownloadCallback parentContext;
     private DownloadTask downloadTask;
 
-    public NetworkFragment() {
-        // Required empty public constructor
 
-        // This is called when the fragment is re-instantiated.
-        // Because of the parameter-less requirement, setArguments() is used to
-        // update member variable of the class.
-        // Creating another public constructor with parameters are discouraged b/c
-        // these won't be called when the fragment is re-instantiated.
-        // There are some memory considerations that I still don't fully understand about
-        // use of setArguments
-    }
-
-    // Why is NetworkFragment's method is handling the add-transaction instead of the parent?
-    // This is cleaner but seems a bit weird design.
-    public static NetworkFragment getInstance(FragmentManager fManager, String url){
+    public static NetworkFragment getInstance(FragmentManager fManager/*, String url*/){
         NetworkFragment fragment = new NetworkFragment();
+        /* (Leaving old code for doc purpose)
+        Bundle args = new Bundle();
+        args.putString('URL_KEY', url)
+        fragment.setArgument(url)
+        */
         fManager.beginTransaction().add(fragment, TAG).commit();
         return fragment;
+
+        // Because fragment's constructor is parameter-less and called on re-instatiation, when instance
+        // needs to take arguments, you need to use a factory method i.e. getInstance() that uses
+        // setArguments(). These arguments are saved when the fragment is re-instantiated. See also
+        // onCreate().
+
+        // The constructor calls whichever the last setArguments() on re-instantiation.
+        // That's why getArguments() works fine in onCreate().
+
+        // Creating another public constructor with parameters are discouraged b/c
+        // these won't be called when the fragment is re-instantiated.
+        // There are some memory considerations that I still don't fully understand about setArguments
+
     }
+
+    /* (Leaving old code for doc purpose)
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mUrlString = getArguments().getString(URL_KEY);
+    }
+    */
 
     @Override
     public void onAttach(Context context){

@@ -106,7 +106,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        networkFragment = NetworkFragment.getInstance(getChildFragmentManager(), newsUrl);
+        networkFragment = NetworkFragment.getInstance(getChildFragmentManager());
         return inflater.inflate(R.layout.fragment_headlines_list, container, false);
     }
 
@@ -166,8 +166,12 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     }
 
     public void resetHeadlines(){
-        mAdapter.resetItems();
-        pageNum = 1;
+        if (mAdapter != null) {
+            mAdapter.resetItems();
+        }
+        if (pageNum > 1) {
+            pageNum = 1;
+        }
         loadHeadlines();
     }
 

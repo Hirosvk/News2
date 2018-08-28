@@ -33,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
         headlineFragment.loadHeadlines();
     }
 
+    public void resetHeadlines(View view){
+        headlineFragment.resetHeadlines();
+    }
     public void goAbout(View view){
         Intent intent = new Intent(this, AboutActivity.class);
         startActivity(intent);
