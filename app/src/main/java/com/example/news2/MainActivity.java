@@ -14,6 +14,7 @@ Projects:
     - open news link in a browser / webview
     - show images
     - deeper understanding of 'Context'
+    - write tests
 
  */
 
@@ -27,10 +28,6 @@ public class MainActivity extends AppCompatActivity {
 
         FragmentManager manager = getSupportFragmentManager();
         headlineFragment = (HeadlinesListFragment) manager.findFragmentById(R.id.fragment);
-    }
-
-    public void loadHeadlines(View view){
-        headlineFragment.loadHeadlines();
     }
 
     public void resetHeadlines(View view){
