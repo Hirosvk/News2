@@ -4,6 +4,8 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -31,34 +33,33 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
             "&apiKey=4291bc8cb2e847caa9155968b7140448";
     private Integer pageNum = 1;
 
-    public HeadlinesListFragment() {
-        // Required empty public constructor
-    }
+    private JSONArray headlineArticles = new JSONArray();
+    private JSONArray previousHeadlines;
 
     public void updateHeadlines(JSONArray articles){
-        if (mAdapter!= null && mAdapter.getItemCount() > 0){
+        if (mAdapter!= null){
             for(int i = 0; i < articles.length(); i++){
                 try {
-                    mAdapter.insertItem(articles.getJSONObject(i));
+                    JSONObject newItem = articles.getJSONObject(i);
+                    headlineArticles.put(newItem);
+                    mAdapter.insertItem(newItem);
                 } catch (JSONException e){
                     Log.d("updateHeadlines", e.getMessage());
                 }
             }
-        } else {
-            initializeRecyclerView(articles);
         }
     }
 
-    private void initializeRecyclerView(JSONArray articles){
-
+    private void initializeRecyclerView(){
         mRecyclerView = (RecyclerView) getView().findViewById(R.id.headlines_recycler_view);
         mRecyclerView.setHasFixedSize(true);
 
         // LayoutManager manages the scrolling direction, etc...
-        mLayoutManager = new LinearLayoutManager(getContext());
+        Context context = getContext();
+        mLayoutManager = new LinearLayoutManager(context);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        mAdapter = new HeadlinesAdapter(articles);
+        mAdapter = new HeadlinesAdapter();
         mRecyclerView.setAdapter(mAdapter);
 
         final HeadlinesListFragment parentFragment = this;
@@ -68,7 +69,6 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView view, int dx, int dy ){
-            Log.d("onScrolled", "onScrolled kicked in");
             super.onScrolled(view, dx, dy);
             if (!view.canScrollVertically(1)){
                 parentFragment.loadHeadlines();
@@ -96,19 +96,73 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         });
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState){
+        String articles = headlineArticles.toString();
+        outState.putString("articles", articles);
+    }
+
+    @Override
+    public void onAttach(Context context){
+        super.onAttach(context);
+        Log.d("track", "HeadlinesListFragment.onAttach");
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-        loadHeadlines();
+        updateHeadlineArticles(savedInstanceState);
+        Log.d("track", "HeadlinesListFragment.onCreate");
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        Log.d("track", "HeadlinesListFragment.onCreateView");
         networkFragment = NetworkFragment.getInstance(getChildFragmentManager());
         return inflater.inflate(R.layout.fragment_headlines_list, container, false);
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        initializeRecyclerView();
+        if (previousHeadlines != null && previousHeadlines.length() > 0){
+            Log.d("lalala", "previous headlines detected " + previousHeadlines.length());
+            updateHeadlines(previousHeadlines);
+            previousHeadlines = null;
+        } else {
+            Log.d("lalala", "previous headlines not detected");
+            loadHeadlines();
+        }
+    }
+
+    @Override
+    public void onDetach(){
+        super.onDetach();
+        Log.d("track", "HeadlinesListFragment.onDetach");
+    }
+
+    @Override
+    public void onDestroy(){
+        Log.d("track", "HeadlinesListFragment.onDestroy");
+        super.onDestroy();
+    }
+
+    private void updateHeadlineArticles(Bundle savedInstanceState){
+        if (savedInstanceState != null) {
+            String oldArticlesString = savedInstanceState.getString("articles");
+            JSONArray oldArticles = null;
+            try {
+                oldArticles = new JSONArray(oldArticlesString);
+            } catch (JSONException e) {
+                Log.d("HLF.onCreate", e.getMessage());
+            }
+            if (oldArticles != null && oldArticles.length() > 0) {
+                previousHeadlines = oldArticles;
+            }
+        }
     }
 
     /* Implementation functions */
@@ -121,7 +175,6 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
     @Override
     public void onProgressUpdate(int progressCode) {
-        Log.d("HK:HLF.onProgressUpdate", "status: " + progressCode);
         switch(progressCode){
             case Progress.CONNECT_SUCCESS:
                 // do something in UI.
@@ -160,13 +213,13 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
     public void loadHeadlines(){
         if (!downloading && networkFragment != null) {
-            Log.d("HK:loadHeadlines", "Starting download");
             networkFragment.startDownload(newsUrl());
             downloading = true;
         }
     }
 
     public void resetHeadlines(){
+        headlineArticles = new JSONArray();
         if (mAdapter != null) {
             mAdapter.resetItems();
         }

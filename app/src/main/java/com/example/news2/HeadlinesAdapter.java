@@ -13,7 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.ViewHolder> {
-    private JSONArray headlines;
+    private JSONArray headlines = new JSONArray();
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public View headlineView;
@@ -21,10 +21,6 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
             super(view);
             headlineView = view;
         }
-    }
-
-    public HeadlinesAdapter(JSONArray _headlines){
-        headlines = _headlines;
     }
 
     public void insertItem(JSONObject item){

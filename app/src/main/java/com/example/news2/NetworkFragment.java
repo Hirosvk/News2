@@ -72,6 +72,7 @@ public class NetworkFragment extends Fragment {
         // Overriding this to update parentContext with context.
         // I guess you can't do this in onCreate.
         parentContext = (DownloadCallback) getParentFragment();
+        Log.d("track", "NetworkFragment.onAttach");
     }
 
     @Override
@@ -79,6 +80,7 @@ public class NetworkFragment extends Fragment {
         // Make sure that download doesn't continue after fragment is destroyed.
         cancelDownload();
         super.onDestroy();
+        Log.d("track", "NetworkFragment.onDestroy");
     }
 
     @Override
@@ -86,9 +88,11 @@ public class NetworkFragment extends Fragment {
         super.onDetach();
         // This avoids memory leak.
         parentContext = null;
+        Log.d("track", "NetworkFragment.onDetach");
     }
 
     public void cancelDownload(){
+        Log.d("track", "NetworkFragment.cancelDownload");
         if(downloadTask != null){
             downloadTask.cancel(true);
             downloadTask = null;
@@ -96,6 +100,7 @@ public class NetworkFragment extends Fragment {
     }
 
     public void startDownload(String stringUrl){
+        Log.d("track", "NetworkFragment.startDownload");
         cancelDownload();
         downloadTask = new DownloadTask();
         downloadTask.setParentContext(parentContext);
@@ -123,6 +128,7 @@ public class NetworkFragment extends Fragment {
                 return exception;
             }
         }
+
 
         public void setParentContext(DownloadCallback context){
             parentContext = context;
@@ -157,7 +163,6 @@ public class NetworkFragment extends Fragment {
                     }
                 } catch(Exception e) {
                     result.setResult(e);
-                    Log.d("HK:doInBackground", e.getMessage());
                 }
             }
             return result;
@@ -174,10 +179,8 @@ public class NetworkFragment extends Fragment {
                     } catch (JSONException e) {
                         Log.d("HK:onPostExecute", e.getMessage());
                     }
-                    Log.d("HK:onPostExecute", "exception");
                     parentContext.updateFromDownloads(errorResult);
                 } else if (result.getResultValue() != null){
-                    Log.d("HK:onPostExecute", "resultValue");
                     parentContext.updateFromDownloads(result.getResultValue());
                 } else {
                     Log.d("HK:onPostExecute", "result is something else");
@@ -206,7 +209,6 @@ public class NetworkFragment extends Fragment {
                 publishProgress(DownloadCallback.Progress.CONNECT_SUCCESS);
                 // This triggers onProgressUpdate
                 int responseCode = connection.getResponseCode();
-                Log.d("HK:DownloadUrl", "connected " + responseCode);
 
                 if (responseCode != HttpsURLConnection.HTTP_OK){
                     throw new IOException("HTTP code: " + responseCode);
@@ -232,7 +234,6 @@ public class NetworkFragment extends Fragment {
 
         protected void onProgressUpdate(Integer... progresses){
             Integer status = progresses[0];
-            Log.d("HK:NF.onProgressUpdate", "status: " + status);
             parentContext.onProgressUpdate(status);
         }
 
