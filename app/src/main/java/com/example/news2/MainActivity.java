@@ -11,18 +11,23 @@ import android.view.View;
 Projects:
     x insert debugger
     x RecyclerView changing items
-    - Screen rotation and it's implication
-    - open news link in a browser / webview
+    x Screen rotation and it's implication
+    x open news link in a browser / webview
+        -> onClick handled in fragment
+        -> open webview
     - show images
-    - deeper understanding of 'Context'
     - write tests
 
-    - using headless fragment to donwload headlines is ok for now.
-      consider using ViewModel and Service to download stuff for the future.
+    - Screen Rotation: change layout by orientation
+    - Screen Rotation: Save headlines & network connection after screen rotation
+      using onSaveInstanceState is ok for now.
+      Consider using ViewModel and Service to download stuff for the future.
+        -> can Fragment's ViewModel live through config change?
+      Using Parcelable is another idea, but only for small data
  */
 
 public class MainActivity extends AppCompatActivity {
-    private HeadlinesListFragment headlineFragment;
+    public HeadlinesListFragment headlineFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

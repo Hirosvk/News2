@@ -33,6 +33,11 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
         notifyDataSetChanged();
     }
 
+    public String getLink(View view){
+        TextView tv = view.findViewById(R.id.textView6);
+        return null;
+    }
+
     // Create new views (invoked by the layout manager)
     @Override
     public HeadlinesAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType){
@@ -46,16 +51,20 @@ public class HeadlinesAdapter extends RecyclerView.Adapter<HeadlinesAdapter.View
     public void onBindViewHolder(ViewHolder holder, int position){
         TextView title = holder.headlineView.findViewById(R.id.textView6);
         TextView quote = holder.headlineView.findViewById(R.id.textView7);
+        TextView urlTV = holder.headlineView.findViewById(R.id.textView4);
         String headlineTitle = "(no title)";
         String headlineQuote = "(no description)";
+        String headlineUrl = null;
         try {
             headlineTitle = headlines.getJSONObject(position).getString("title");
             headlineQuote = headlines.getJSONObject(position).getString("description");
+            headlineUrl = headlines.getJSONObject(position).getString("url");
         } catch (JSONException e){
             Log.d("onBindViewHolder", e.getMessage());
         }
         title.setText(headlineTitle);
         quote.setText(headlineQuote);
+        urlTV.setText(headlineUrl);
     }
 
     // also invoked by the layout manager

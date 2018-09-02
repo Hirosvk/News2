@@ -1,18 +1,20 @@
 package com.example.news2;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +38,41 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     private JSONArray headlineArticles = new JSONArray();
     private JSONArray previousHeadlines;
 
+    /* See Android documentation on custom view component */
+    public static class HeadlinesRecyclerView extends RecyclerView {
+        /*
+            I'm not sure why I need to define these constructors here if the class
+            inherits from RecyclerView, but runtime errors are thrown without these
+            constructors.
+        */
+        public HeadlinesRecyclerView(Context context){
+            super(context);
+        }
+        public HeadlinesRecyclerView(Context context, AttributeSet set){
+            super(context, set);
+        }
+        public HeadlinesRecyclerView(Context context, AttributeSet set, int style){
+            super(context, set, style);
+        }
+        @Override
+        public void onChildAttachedToWindow(View child){
+            super.onChildAttachedToWindow(child);
+            child.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TextView tv = v.findViewById(R.id.textView4);
+                    HeadlinesListFragment.goToLink(getContext(), (String) tv.getText());
+                }
+            });
+        }
+    }
+
+    public static void goToLink(Context context,  String link){
+        Intent intent = new Intent(context, ArticleWebViewActivity.class);
+        intent.putExtra("url", link);
+        context.startActivity(intent);
+    }
+
     public void updateHeadlines(JSONArray articles){
         if (mAdapter!= null){
             for(int i = 0; i < articles.length(); i++){
@@ -51,7 +88,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     }
 
     private void initializeRecyclerView(){
-        mRecyclerView = (RecyclerView) getView().findViewById(R.id.headlines_recycler_view);
+        mRecyclerView = (HeadlinesRecyclerView) getView().findViewById(R.id.headlines_recycler_view);
         mRecyclerView.setHasFixedSize(true);
 
         // LayoutManager manages the scrolling direction, etc...

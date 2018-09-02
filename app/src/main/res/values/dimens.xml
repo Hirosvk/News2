@@ -4,4 +4,5 @@
     <dimen name="headline_item_height">110dp</dimen>
     <dimen name="headline_title">45dp</dimen>
     <dimen name="headline_quote">60dp</dimen>
+    <dimen name="no_height">0px</dimen>
 </resources>
