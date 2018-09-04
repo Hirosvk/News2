@@ -2,6 +2,7 @@ package com.example.news2;
 
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -32,7 +33,13 @@ public class NetworkFragment extends Fragment {
 
     private DownloadCallback parentContext;
     private DownloadTask downloadTask;
+    private JSONArray requestQueue = new JSONArray();
 
+    interface DownloadType {
+        int JSON = 1;
+        int IMAGE = 2;
+
+    }
 
     public static NetworkFragment getInstance(FragmentManager fManager/*, String url*/){
         NetworkFragment fragment = new NetworkFragment();
@@ -72,7 +79,6 @@ public class NetworkFragment extends Fragment {
         // Overriding this to update parentContext with context.
         // I guess you can't do this in onCreate.
         parentContext = (DownloadCallback) getParentFragment();
-        Log.d("track", "NetworkFragment.onAttach");
     }
 
     @Override
@@ -80,7 +86,6 @@ public class NetworkFragment extends Fragment {
         // Make sure that download doesn't continue after fragment is destroyed.
         cancelDownload();
         super.onDestroy();
-        Log.d("track", "NetworkFragment.onDestroy");
     }
 
     @Override
@@ -88,11 +93,9 @@ public class NetworkFragment extends Fragment {
         super.onDetach();
         // This avoids memory leak.
         parentContext = null;
-        Log.d("track", "NetworkFragment.onDetach");
     }
 
     public void cancelDownload(){
-        Log.d("track", "NetworkFragment.cancelDownload");
         if(downloadTask != null){
             downloadTask.cancel(true);
             downloadTask = null;
@@ -100,16 +103,79 @@ public class NetworkFragment extends Fragment {
     }
 
     public void startDownload(String stringUrl){
-        Log.d("track", "NetworkFragment.startDownload");
+        startDownload(stringUrl, DownloadType.JSON);
+    }
+
+    public void startDownload(String stringUrl, int downloadType){
+        startDownload(stringUrl, downloadType, null);
+    }
+
+    public void startDownload(String stringUrl, int downloadType, JSONObject extra){
+        Log.d("DLX", "startDownload || " + stringUrl + " || " + String.valueOf(downloadType));
+        if (downloadTask != null &&
+            (downloadTask.getStatus().equals(AsyncTask.Status.RUNNING) ||
+             downloadTask.getStatus().equals(AsyncTask.Status.PENDING))){
+            Log.d("DLX", "startDownload || adding to queue");
+            addToQueue(stringUrl, downloadType, extra);
+        } else {
+            Log.d("DLX", "startDownload || start download");
+            startDownloadTask(stringUrl, downloadType, extra);
+        }
+    }
+
+    public void startDownloadTask(String stringUrl, int downloadType, JSONObject extra){
+        Log.d("DLX", "startDownloadTask");
         cancelDownload();
         downloadTask = new DownloadTask();
         downloadTask.setParentContext(parentContext);
+        downloadTask.setNetworkFragment(this);
+        downloadTask.setDownloadType(downloadType);
+        if (extra != null){
+            downloadTask.setExtra(extra);
+        }
         downloadTask.execute(stringUrl);
+    }
+
+    public void onProgressUpdate(int status){
+        Log.d("DLX", "NF.onProgressUpdate || status: " + String.valueOf(status));
+        if (status == DownloadCallback.Progress.FINISHED && requestQueue.length() > 0){
+            JSONObject task = (JSONObject) requestQueue.remove(0);
+            try {
+                Log.d("DLX", "NF.onProgressUpdate || more to download...");
+                startDownloadTask(task.getString("url"), task.getInt("downloadType"), (JSONObject)task.get("extra"));
+            } catch (JSONException e){
+                Log.d("NF.onProgressUpdate", e.getMessage());
+            }
+        }
+    }
+
+    public void addToQueue(String url, int downloadType, JSONObject extra){
+        JSONObject request = new JSONObject();
+
+        try {
+            request.put("url", url);
+            request.put("downloadType", downloadType);
+            request.put("extra", extra);
+        } catch (JSONException e){
+            Log.d("addToQueue", e.getMessage());
+        }
+
+        if (request.has("url") && request.has("downloadType")) {
+            requestQueue.put(request);
+        }
     }
 
     // Generic types AsyncTask<params, progress, result>
     private class DownloadTask extends AsyncTask<String, Integer, DownloadTask.Result>{
         private DownloadCallback parentContext;
+        private NetworkFragment networkFragment;
+        private int downloadType;
+        private JSONObject extra = null;
+
+        public void setDownloadType(int _downloadType){
+            downloadType = _downloadType;
+        }
+
         class Result{
             private JSONObject resultValue;
             private Exception exception;
@@ -134,6 +200,16 @@ public class NetworkFragment extends Fragment {
             parentContext = context;
         }
 
+        public void setNetworkFragment(NetworkFragment fragment){
+            networkFragment = fragment;
+        }
+
+        public void setExtra(JSONObject _extra){
+            if (_extra != null && _extra.length() > 0) {
+                extra = _extra;
+            }
+        }
+
         @Override
         protected void onPreExecute(){
             if (parentContext != null){
@@ -141,7 +217,7 @@ public class NetworkFragment extends Fragment {
                 if (networkInfo == null || !networkInfo.isConnected() ||
                     (networkInfo.getType() != ConnectivityManager.TYPE_WIFI
                             && networkInfo.getType() != ConnectivityManager.TYPE_MOBILE)) {
-                    parentContext.updateFromDownloads(null);
+                    updateFromDownloads(null);
                     cancel(true); // AsyncTask function
                     // Should show some UI msg
                 }
@@ -179,9 +255,9 @@ public class NetworkFragment extends Fragment {
                     } catch (JSONException e) {
                         Log.d("HK:onPostExecute", e.getMessage());
                     }
-                    parentContext.updateFromDownloads(errorResult);
+                    updateFromDownloads(errorResult);
                 } else if (result.getResultValue() != null){
-                    parentContext.updateFromDownloads(result.getResultValue());
+                    updateFromDownloads(result.getResultValue());
                 } else {
                     Log.d("HK:onPostExecute", "result is something else");
                 }
@@ -190,6 +266,12 @@ public class NetworkFragment extends Fragment {
                 Log.d("HK:onPostExecute", "something is null");
                 cancel(true);
             }
+        }
+
+        private void updateFromDownloads(JSONObject result){
+            Log.d("DLX", "finished task, calling updateFromDownloads");
+            parentContext.updateFromDownloads(result);
+            publishProgress(DownloadCallback.Progress.FINISHED);
         }
 
         private JSONObject downloadUrl(URL url) throws IOException {
@@ -218,8 +300,27 @@ public class NetworkFragment extends Fragment {
                 publishProgress(DownloadCallback.Progress.GET_INPUT_STREAM_SUCCESS);
 
                 if (stream != null){
-                    JsonReader reader = new JsonReader(new InputStreamReader(stream));
-                    result = JsonParser(reader);
+                    if (downloadType == DownloadType.JSON) {
+                        JsonReader reader = new JsonReader(new InputStreamReader(stream));
+                        result = JsonParser(reader);
+
+                    } else if (downloadType == DownloadType.IMAGE){
+                        result = new JSONObject();
+                        try {
+                            result.put("downloadedImage", BitmapFactory.decodeStream(stream));
+
+                            if (extra != null){
+                                JSONArray names = extra.names();
+                                for(int i = 0; i < names.length(); i++){
+                                    String name = names.getString(i);
+                                    result.put(name, extra.get(name));
+                                }
+                            }
+
+                        } catch (JSONException e){
+                            Log.d("downloadUrl", e.getMessage());
+                        }
+                    }
                 }
             } finally {
                 if (stream != null){
@@ -234,6 +335,7 @@ public class NetworkFragment extends Fragment {
 
         protected void onProgressUpdate(Integer... progresses){
             Integer status = progresses[0];
+            networkFragment.onProgressUpdate(status);
             parentContext.onProgressUpdate(status);
         }
 
@@ -270,7 +372,7 @@ public class NetworkFragment extends Fragment {
                         reader.endArray();
 
                     } else if (nextToken.equals(JsonToken.NULL)){
-                        result.put(name, "(no description)");
+                        result.put(name, "(null)");
                         reader.skipValue();
 
                     } else {
@@ -288,7 +390,9 @@ public class NetworkFragment extends Fragment {
         }
 
         @Override
-        protected void onCancelled(Result result){}
+        protected void onCancelled(Result result){
+            publishProgress(DownloadCallback.Progress.FINISHED);
+        }
     }
 
 }

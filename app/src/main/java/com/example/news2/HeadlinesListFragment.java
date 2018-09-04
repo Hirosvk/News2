@@ -2,10 +2,10 @@ package com.example.news2;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -19,6 +19,8 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class HeadlinesListFragment extends Fragment implements DownloadCallback<JSONObject>{
     private RecyclerView mRecyclerView;
@@ -37,6 +39,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
     private JSONArray headlineArticles = new JSONArray();
     private JSONArray previousHeadlines;
+    private AtomicInteger atomicInteger = new AtomicInteger();
 
     /* See Android documentation on custom view component */
     public static class HeadlinesRecyclerView extends RecyclerView {
@@ -78,12 +81,35 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
             for(int i = 0; i < articles.length(); i++){
                 try {
                     JSONObject newItem = articles.getJSONObject(i);
+                    newItem.put("id", (long) atomicInteger.getAndIncrement());
+
                     headlineArticles.put(newItem);
-                    mAdapter.insertItem(newItem);
+                    int position = mAdapter.insertItem(newItem);
+                    newItem.put("position", position);
+                    getImage(newItem);
+
                 } catch (JSONException e){
                     Log.d("updateHeadlines", e.getMessage());
                 }
             }
+        }
+    }
+
+    private void getImage(JSONObject article){
+        String imageUrl = null;
+        JSONObject extra = new JSONObject();
+        try {
+            imageUrl = article.getString("urlToImage");
+            extra.put("position", article.getInt("position"));
+            Log.d("DLX", "getting image " + article.getInt("position") + " " + imageUrl);
+        } catch (JSONException e) {
+            Log.d("getImage", e.getMessage());
+        }
+
+        if (imageUrl != null) {
+            networkFragment.startDownload(imageUrl, NetworkFragment.DownloadType.IMAGE, extra);
+        } else {
+            Log.d("DLX", "No url for this article");
         }
     }
 
@@ -97,6 +123,7 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         mAdapter = new HeadlinesAdapter();
+        mAdapter.setHasStableIds(true);
         mRecyclerView.setAdapter(mAdapter);
 
         final HeadlinesListFragment parentFragment = this;
@@ -142,21 +169,18 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     @Override
     public void onAttach(Context context){
         super.onAttach(context);
-        Log.d("track", "HeadlinesListFragment.onAttach");
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-        updateHeadlineArticles(savedInstanceState);
-        Log.d("track", "HeadlinesListFragment.onCreate");
+        updateHeadlineArticlesWithPrevious(savedInstanceState);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        Log.d("track", "HeadlinesListFragment.onCreateView");
         networkFragment = NetworkFragment.getInstance(getChildFragmentManager());
         return inflater.inflate(R.layout.fragment_headlines_list, container, false);
     }
@@ -166,11 +190,9 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
         super.onStart();
         initializeRecyclerView();
         if (previousHeadlines != null && previousHeadlines.length() > 0){
-            Log.d("lalala", "previous headlines detected " + previousHeadlines.length());
             updateHeadlines(previousHeadlines);
             previousHeadlines = null;
         } else {
-            Log.d("lalala", "previous headlines not detected");
             loadHeadlines();
         }
     }
@@ -178,16 +200,14 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
     @Override
     public void onDetach(){
         super.onDetach();
-        Log.d("track", "HeadlinesListFragment.onDetach");
     }
 
     @Override
     public void onDestroy(){
-        Log.d("track", "HeadlinesListFragment.onDestroy");
         super.onDestroy();
     }
 
-    private void updateHeadlineArticles(Bundle savedInstanceState){
+    private void updateHeadlineArticlesWithPrevious(Bundle savedInstanceState){
         if (savedInstanceState != null) {
             String oldArticlesString = savedInstanceState.getString("articles");
             JSONArray oldArticles = null;
@@ -224,18 +244,34 @@ public class HeadlinesListFragment extends Fragment implements DownloadCallback<
 
     @Override
     public void updateFromDownloads(JSONObject result) {
-        // updates headlines
-        JSONArray articles = null;
-        try {
-            articles = result.getJSONArray("articles");
-        } catch (JSONException e){
-            Log.d("HK:updateFromDownloads", e.getMessage());
-        }
+        if (result.has("downloadedImage")) {
+            try {
+                Log.d("DLX", "received image");
+                int position = result.getInt("position");
+                Bitmap image = (Bitmap) result.get("downloadedImage");
+                mAdapter.updateImage(position, image);
 
-        if (articles != null) {
-            updateHeadlines(articles);
+            } catch (JSONException e){
+                Log.d("updateFromDownloads", e.getMessage());
+            }
+
+
+        } else if (result.has("articles")){
+            JSONArray articles = null;
+            try {
+                articles = result.getJSONArray("articles");
+            } catch (JSONException e) {
+                Log.d("HK:updateFromDownloads", e.getMessage());
+            }
+
+            if (articles != null) {
+                updateHeadlines(articles);
+            } else {
+                Log.d("HK:updateFromDownloads", "articles is null");
+            }
+
         } else {
-            Log.d("HK:updateFromDownloads", "articles is null");
+            Log.d("updateFromDownloads", "Wrong download response");
         }
     }
 

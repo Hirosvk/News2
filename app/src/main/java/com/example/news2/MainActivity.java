@@ -15,9 +15,13 @@ Projects:
     x open news link in a browser / webview
         -> onClick handled in fragment
         -> open webview
-    - show images
-    - write tests
+    x show images
+        -> Glide is recommended to handle large images, but for now go with BitmapFactory for article thumbnails.
+        -> PNG, JPG, GIF are handled by bitmap
 
+
+    - refactor NetworkFragment.DownloadTask to handle/parse response; make it more generic
+    - write tests
     - Screen Rotation: change layout by orientation
     - Screen Rotation: Save headlines & network connection after screen rotation
       using onSaveInstanceState is ok for now.
@@ -32,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("track", "MainActivity.onCreate");
         setContentView(R.layout.activity_main);
 
         FragmentManager manager = getSupportFragmentManager();
@@ -41,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy(){
-        Log.d("track", "MainActivity.onDestroy");
        super.onDestroy();
     }
 

@@ -32,4 +32,12 @@
         android:text="@string/empty"
         android:textSize="12sp" />
 
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:contentDescription="@string/empty"
+        android:visibility="visible" />
+
 </LinearLayout>
